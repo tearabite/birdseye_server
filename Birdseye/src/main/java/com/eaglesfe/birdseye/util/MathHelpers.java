@@ -1,4 +1,4 @@
-package eaglesfe.common;
+package birdseye.util;
 
 import android.graphics.Point;
 

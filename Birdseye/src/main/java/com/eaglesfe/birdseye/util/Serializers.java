@@ -1,4 +1,4 @@
-package eaglesfe.common;
+package birdseye.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -11,6 +11,8 @@ import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
 
 import java.io.IOException;
+
+import birdseye.FieldPosition;
 
 public class Serializers {
 

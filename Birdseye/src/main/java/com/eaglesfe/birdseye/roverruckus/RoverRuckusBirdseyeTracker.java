@@ -1,4 +1,4 @@
-package eaglesfe.roverruckus;
+package birdseye.roverruckus;
 
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -9,7 +9,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 
-import eaglesfe.common.BirdseyeTracker;
+import birdseye.BirdseyeTracker;
 
 public class RoverRuckusBirdseyeTracker extends BirdseyeTracker
 {

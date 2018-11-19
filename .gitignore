@@ -3,3 +3,4 @@
 !/Birdseye/**
 !.gitignore
 .DS_Store
+Birdseye/build

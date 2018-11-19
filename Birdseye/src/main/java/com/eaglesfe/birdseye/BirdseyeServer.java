@@ -1,4 +1,4 @@
-package eaglesfe.common;
+package birdseye;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonWriter;
@@ -16,6 +16,8 @@ import java.net.InetSocketAddress;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import birdseye.util.Serializers;
 
 public class BirdseyeServer {
 

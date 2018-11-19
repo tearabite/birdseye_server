@@ -1,9 +1,11 @@
-package eaglesfe.common;
+package birdseye.util;
 
 import android.graphics.Point;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+
+import birdseye.FieldPosition;
 
 public class FieldPositionHelpers {
     public static void addToTelemetry(FieldPosition position, Telemetry telemetry){
