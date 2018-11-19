@@ -1,0 +1,5 @@
+*
+!*/
+!/Birdseye/**
+!.gitignore
+.DS_Store
