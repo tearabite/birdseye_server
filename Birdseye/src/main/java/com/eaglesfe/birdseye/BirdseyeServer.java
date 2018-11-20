@@ -1,4 +1,4 @@
-package birdseye;
+package com.eaglesfe.birdseye;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonWriter;
@@ -17,12 +17,12 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import birdseye.util.Serializers;
+import com.eaglesfe.birdseye.util.Serializers;
 
 public class BirdseyeServer {
 
     private BirdseyeServerImpl server;
-    private boolean newOutgoingData = false;
+    private boolean updateRequested;
     private Gson gson;
     private JsonWriter json;
     private StringWriter string;
@@ -52,7 +52,6 @@ public class BirdseyeServer {
         try {
             json.name(key);
             gson.toJson(value, value.getClass(), json);
-            newOutgoingData = true;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -67,7 +66,8 @@ public class BirdseyeServer {
         this.json.endObject();
     }
 
-    public void beginArray() throws IOException {
+    public void beginArray(String key) throws IOException {
+        this.json.name(key);
         this.json.beginObject();
     }
 
@@ -82,8 +82,12 @@ public class BirdseyeServer {
     }
 
     public void update() {
+        this.updateRequested = true;
+    }
+
+    private void processUpdate() {
         if (server.isOpen) {
-            if (newOutgoingData) {
+            if (this.updateRequested) {
                 try {
                     String telemetry = endTelemetryBlock();
                     server.broadcast(telemetry);
@@ -92,7 +96,7 @@ public class BirdseyeServer {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                newOutgoingData = false;
+                this.updateRequested = false;
             }
         }
     }
@@ -113,7 +117,7 @@ public class BirdseyeServer {
 
     class MessageFlushTask extends TimerTask {
         public void run() {
-            update();
+            processUpdate();
         }
     }
 
@@ -135,6 +139,7 @@ public class BirdseyeServer {
 
         public BirdseyeServerImpl(int port, Telemetry telemetry) {
             super(new InetSocketAddress(port));
+            setReuseAddr(true);
             opModeTelemetry = telemetry;
         }
 

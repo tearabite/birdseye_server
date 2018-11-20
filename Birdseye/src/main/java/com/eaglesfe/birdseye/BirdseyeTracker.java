@@ -1,4 +1,4 @@
-package birdseye;
+package com.eaglesfe.birdseye;
 
 import android.support.annotation.NonNull;
 

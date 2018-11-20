@@ -1,11 +1,17 @@
-package birdseye.util;
+package com.eaglesfe.birdseye.util;
 
 import android.graphics.Point;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 
-import birdseye.FieldPosition;
+import com.eaglesfe.birdseye.FieldPosition;
+
+import static org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix.identityMatrix;
 
 public class FieldPositionHelpers {
     public static void addToTelemetry(FieldPosition position, Telemetry telemetry){
@@ -22,50 +28,27 @@ public class FieldPositionHelpers {
      * second element represents the side to side input needed.
      * @param position The position of the robot in field-space.
      * @param target The point in field-space the robot should move toward.
-     * @param minSpeed The minimum speed at which we want the robot to move [-1, 1]
-     * @param maxSpeed The maximum speed at which we want the robot to move [-1, 1]
-     * @param backoffThresholdMax The distance from the target at which we will begin linearly scaling
-     *                            down the resultant vector in order to slow the robot as it approaches target.
-     * @param backoffThresholdMin The distance from the target at which the returned vectors elements
-     *                            both become zero. i.e, the radius around the target point that
-     *                            the robot should stop moving once it has entered.
      * @return A 2-vector whose first element represents
      * the required forward and reverse input the robot needs to move toward the target point,
      * and whose second element represents the side to side input needed.
      */
-    public static VectorF getRequiredMovementVectorForTarget(FieldPosition position,
-                                                             VectorF target,
-                                                             double minSpeed,
-                                                             double maxSpeed,
-                                                             double backoffThresholdMax,
-                                                             double backoffThresholdMin) {
+    public static VectorF getTargetVector(FieldPosition position, VectorF target) {
         // Invert the matrix that gave us our robot position and use it to transform a point
         // in field space into the corresponding point in robot space
-        VectorF translated = position.transformPointToRobotSpace(target);
+        VectorF translated = OpenGLMatrix.identityMatrix()
+                .rotated(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES, 0,0, 90)
+                .transform(position.transformPointToRobotSpace(target));
 
         // Calculate the dist from robot-space origin (0,0) and the transformed target point.
         // Convert our current heading (which is the rotation of the robot's coordinate plane
         // about the field's Z axis) to radians.
-        double radius = MathHelpers.getDistanceBetweenTwoPoints(new Point(0, 0), new Point((int)translated.get(0), (int)translated.get(1)));
-        double theta = Math.toRadians(position.getHeading());
+        double theta = Math.atan(translated.get(1) / translated.get(0));
 
         // Use sin and cos of the angle formed between x_field and x_robot and the distance
         // between the two points of interest in order to get component X and Y
         // parts of the line representing the path we are to travel.
-        double y = Math.sin(theta) * radius;
-        double x = Math.cos(theta) * radius;
-
-        // Scale the x and y we have to be in [-1,1]
-        double max = Math.max(Math.abs(x), Math.abs(y));
-        double scale = Math.max(minSpeed, Math.min(1, Math.abs(radius) / backoffThresholdMax)) * maxSpeed;
-
-        y /= max / scale;
-        x /= max / scale;
-
-        if (Math.abs(radius) < backoffThresholdMin) {
-            x = 0;
-            y = 0;
-        }
+        double y = Math.copySign(Math.sin(theta), translated.get(1));
+        double x = Math.copySign(Math.cos(theta), translated.get(0));
 
         return new VectorF((float)x, (float)y);
     }

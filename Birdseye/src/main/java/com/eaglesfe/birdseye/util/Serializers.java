@@ -1,4 +1,4 @@
-package birdseye.util;
+package com.eaglesfe.birdseye.util;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,7 +12,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
 
 import java.io.IOException;
 
-import birdseye.FieldPosition;
+import com.eaglesfe.birdseye.FieldPosition;
 
 public class Serializers {
 
