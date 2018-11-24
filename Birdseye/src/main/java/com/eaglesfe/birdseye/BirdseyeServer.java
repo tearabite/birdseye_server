@@ -1,6 +1,7 @@
 package com.eaglesfe.birdseye;
 
 import com.google.gson.Gson;
+import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonWriter;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -16,6 +17,8 @@ import java.net.InetSocketAddress;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import com.eaglesfe.birdseye.util.Serializers;
 
@@ -28,11 +31,12 @@ public class BirdseyeServer {
     private StringWriter string;
     private Timer timer;
     private int updateInterval = 250;
+    private Semaphore mutex = new Semaphore(1);
 
     public BirdseyeServer(int port, Telemetry telemetry) {
         try {
             this.gson = Serializers.getGson();
-            beginTelemetryBlock();
+            startNewTelemetryBlock();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -42,44 +46,84 @@ public class BirdseyeServer {
         timer.scheduleAtFixedRate(new MessageFlushTask(), 0, updateInterval);
     }
 
-    protected void beginTelemetryBlock() throws IOException {
-        this.string = new StringWriter();
-        this.json = this.gson.newJsonWriter(string);
-        json.beginObject();
+    protected String startNewTelemetryBlock() throws IOException {
+        String telemetry = "";
+        try {
+            if (mutex.tryAcquire(this.updateInterval, TimeUnit.MILLISECONDS)) {
+                if (json != null && string != null) {
+                    this.json.endObject();
+                    this.json.close();
+                    telemetry = this.string.toString();
+                }
+                this.string = new StringWriter();
+                this.json = this.gson.newJsonWriter(string);
+                json.beginObject();
+                mutex.release();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return telemetry;
     }
 
     public void addData(String key, Object value) {
         try {
-            json.name(key);
-            gson.toJson(value, value.getClass(), json);
-        } catch (IOException e) {
+            if (mutex.tryAcquire(this.updateInterval, TimeUnit.MILLISECONDS)) {
+                json.name(key);
+                gson.toJson(value, value.getClass(), json);
+                mutex.release();
+            }
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+    }
+
+    public void beginObject(String key) throws IOException {
+        try {
+            if (mutex.tryAcquire(this.updateInterval, TimeUnit.MILLISECONDS)) {
+                this.json.name(key);
+                this.json.beginObject();
+                mutex.release();
+            }
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public void beginObject(String key) throws IOException {
-        this.json.name(key);
-        this.json.beginObject();
-    }
-
     public void endObject() throws IOException {
-        this.json.endObject();
+        try {
+            if (mutex.tryAcquire(this.updateInterval, TimeUnit.MILLISECONDS)) {
+                this.json.endObject();
+                mutex.release();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void beginArray(String key) throws IOException {
-        this.json.name(key);
-        this.json.beginObject();
+        try {
+            if (mutex.tryAcquire(this.updateInterval, TimeUnit.MILLISECONDS)) {
+                this.json.name(key);
+                this.json.beginObject();
+                mutex.release();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public void endArray() throws IOException {
-        this.json.endObject();
+        try {
+            if (mutex.tryAcquire(this.updateInterval, TimeUnit.MILLISECONDS)) {
+                this.json.endObject();
+                mutex.release();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
-    public String endTelemetryBlock() throws IOException {
-        this.json.endObject();
-        this.json.close();
-        return this.string.toString();
-    }
 
     public void update() {
         this.updateRequested = true;
@@ -88,15 +132,13 @@ public class BirdseyeServer {
     private void processUpdate() {
         if (server.isOpen) {
             if (this.updateRequested) {
+                this.updateRequested = false;
                 try {
-                    String telemetry = endTelemetryBlock();
+                    String telemetry = startNewTelemetryBlock();
                     server.broadcast(telemetry);
-                    beginTelemetryBlock();
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                this.updateRequested = false;
             }
         }
     }
@@ -132,6 +174,7 @@ public class BirdseyeServer {
             e.printStackTrace();
         }
     }
+
     private class BirdseyeServerImpl extends WebSocketServer {
         private boolean isOpen;
         private Telemetry opModeTelemetry;

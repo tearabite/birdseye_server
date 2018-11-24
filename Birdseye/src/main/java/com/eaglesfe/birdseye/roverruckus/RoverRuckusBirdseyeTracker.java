@@ -1,5 +1,6 @@
 package com.eaglesfe.birdseye.roverruckus;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
@@ -8,12 +9,48 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import com.eaglesfe.birdseye.BirdseyeTracker;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_GOLD_MINERAL;
+import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_SILVER_MINERAL;
+import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.TFOD_MODEL_ASSET;
 
 public class RoverRuckusBirdseyeTracker extends BirdseyeTracker
 {
     private static final float mmTargetHeight   = 6 * VuforiaBase.MM_PER_INCH;          // the height of the center of the target image above the floor
+    private TFObjectDetector tfod;
+
+    @Override
+    public void start() {
+        super.start();
+        tfod.activate();
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+        tfod.shutdown();
+    }
+
+    @Override
+    public void initialize(HardwareMap hardwareMap, String webcamName, boolean preview) {
+        super.initialize(hardwareMap, webcamName, preview);
+
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters();
+        if (preview) {
+            tfodParameters.tfodMonitorViewIdParent = hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        }
+
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_GOLD_MINERAL, LABEL_SILVER_MINERAL);
+    }
 
     protected VuforiaTrackables getTrackables() {
 
@@ -50,6 +87,13 @@ public class RoverRuckusBirdseyeTracker extends BirdseyeTracker
         backSpace.setLocation(backSpaceLocationOnField);
 
         return trackables;
+    }
+
+    public MineralSample trySampleMinerals() {
+        assertInitialized();
+        assertTrackingStarted();
+
+        return new MineralSample(tfod.getRecognitions());
     }
 }
 

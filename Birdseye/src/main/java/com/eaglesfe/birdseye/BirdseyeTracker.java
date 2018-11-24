@@ -74,7 +74,7 @@ public abstract class BirdseyeTracker
         if (webcamName != null){
             OpenGLMatrix cameraLocationOnRobot = OpenGLMatrix
                     .translation(cameraForwardOffsetMm, cameraLeftOffsetMm, cameraVerticalOffsetMm)
-                    .multiplied(Orientation.getRotationMatrix(AxesReference.EXTRINSIC, AxesOrder.XZY, AngleUnit.DEGREES, 90, cameraAngleOffsetDeg, 0));
+                    .multiplied(Orientation.getRotationMatrix(AxesReference.EXTRINSIC, AxesOrder.XZY, AngleUnit.DEGREES, 90, 90 + cameraAngleOffsetDeg, 0));
 
             for (VuforiaTrackable trackable : trackables)
             {
@@ -84,7 +84,7 @@ public abstract class BirdseyeTracker
         else {
             OpenGLMatrix phoneLocationOnRobot = OpenGLMatrix
                     .translation(cameraForwardOffsetMm, cameraLeftOffsetMm, cameraVerticalOffsetMm)
-                    .multiplied(Orientation.getRotationMatrix(AxesReference.EXTRINSIC, AxesOrder.YZX, AngleUnit.DEGREES, cameraAngleOffsetDeg - 90, 0, 0));
+                    .multiplied(Orientation.getRotationMatrix(AxesReference.EXTRINSIC, AxesOrder.YZX, AngleUnit.DEGREES, -90, cameraAngleOffsetDeg, 0));
 
             for (VuforiaTrackable trackable : trackables)
             {
@@ -158,13 +158,13 @@ public abstract class BirdseyeTracker
 
     protected abstract VuforiaTrackables getTrackables();
 
-    private void assertInitialized() throws IllegalStateException {
+    protected void assertInitialized() throws IllegalStateException {
         if (!isInitialized) {
             throw new IllegalStateException("Birdseye Tracker has not been initialized. Make sure you call initialize().");
         }
     }
 
-    private void assertTrackingStarted() throws IllegalStateException {
+    protected void assertTrackingStarted() throws IllegalStateException {
         if (!isInitialized) {
             throw new IllegalStateException("Birdseye Tracker is not tracking. Make sure you call start().");
         }

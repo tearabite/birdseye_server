@@ -1,7 +1,5 @@
 package com.eaglesfe.birdseye.util;
 
-import android.graphics.Point;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
@@ -21,7 +19,7 @@ public class FieldPositionHelpers {
         telemetry.addData("", positionFormatter, position.getX(), position.getY(), position.getZ());
         telemetry.addData("", rotationFormatter, position.getRoll(), position.getPitch(), position.getHeading());
     }
-    
+
     /** Given a {@link FieldPosition} and a vector which identifies a point in the field's coordinate
      * space toward which the robot should trend, calculate a vector whose first element represents
      * the required forward and reverse input the robot needs to move toward that point, and whose
@@ -33,23 +31,61 @@ public class FieldPositionHelpers {
      * and whose second element represents the side to side input needed.
      */
     public static VectorF getTargetVector(FieldPosition position, VectorF target) {
-        // Invert the matrix that gave us our robot position and use it to transform a point
-        // in field space into the corresponding point in robot space
+
+        // The robot coordinate system is aligned such that FORWARD points out toward +X.
+        // This is somewhat unintuitive, so for this method, we rotate it around Z 90 degrees
+        // in order to align it on +Y. This way, we can think of a positive Y value in the
+        // resultant vector as a forward translation, a positive X value as a rightward translation, etc.
+        // We accomplish this by creating an identity matrix, rotating it 90 degrees, and then
+        // using that to transform the already transformed target vector. See the documentation for
+        // FieldPosition.fieldToRobot for more information on how that vector is calculated.
         VectorF translated = OpenGLMatrix.identityMatrix()
                 .rotated(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES, 0,0, 90)
-                .transform(position.transformPointToRobotSpace(target));
+                .transform(position.fieldToRobot(target));
 
-        // Calculate the dist from robot-space origin (0,0) and the transformed target point.
-        // Convert our current heading (which is the rotation of the robot's coordinate plane
-        // about the field's Z axis) to radians.
-        double theta = Math.atan(translated.get(1) / translated.get(0));
+        // We now have the point we're interested in in robot space, and we can think of the robot's
+        // position as being at [0, 0, 0]. So, to get the X and Y components of the resultant vector,
+        // we simply find cos and sin respectively. Refer to the following diagram for help.
 
-        // Use sin and cos of the angle formed between x_field and x_robot and the distance
-        // between the two points of interest in order to get component X and Y
-        // parts of the line representing the path we are to travel.
-        double y = Math.copySign(Math.sin(theta), translated.get(1));
-        double x = Math.copySign(Math.cos(theta), translated.get(0));
+        //            |   *
+        //            |  /|
+        //            | / | opposite
+        //            |/  |
+        // -----------*---+--------
+        //            | adjacent
+        //            |
+        //            |
+        //            |
+
+        // sin = Opposite over Hypotenuse - Represents the Y component
+        // cos = Adjacent over Hypotenuse - Represents the X component
+
+        double opposite = translated.get(1); // The Y component of our translated target point.
+        double adjacent = translated.get(0); // The X component of our translated target point.
+
+        // The hypotenuse is simply the magnitude of our translated target vector. We could also use
+        // the Pythagorean theorem to get this, but as its already a vector, we can call the
+        // `magnitude()` method.
+
+        double hypotenuse = translated.magnitude();
+
+        double x = adjacent / hypotenuse;
+        double y = opposite / hypotenuse;
 
         return new VectorF((float)x, (float)y);
+    }
+
+    public static double getTargetDistance(FieldPosition position, VectorF target) {
+        VectorF translated = OpenGLMatrix.identityMatrix()
+                .rotated(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES, 0,0, 90)
+                .transform(position.fieldToRobot(target));
+        return translated.magnitude();
+    }
+
+    public static double getTargetAngle(FieldPosition position, VectorF target) {
+        VectorF translated = OpenGLMatrix.identityMatrix()
+                .rotated(AxesReference.EXTRINSIC, AxesOrder.XYZ, AngleUnit.DEGREES, 0,0, 90)
+                .transform(position.fieldToRobot(target));
+        return Math.toDegrees(Math.atan(translated.get(1) / translated.get(0)));
     }
 }

@@ -1,5 +1,7 @@
 package com.eaglesfe.birdseye;
 
+import com.eaglesfe.birdseye.util.FieldPositionHelpers;
+
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -49,6 +51,8 @@ public class FieldPosition {
         return result;
     }
 
+    // Core API - Serialized -----------------------------------------------------------------------
+
     public float getX() {
         return x;
     }
@@ -77,6 +81,8 @@ public class FieldPosition {
         return acquisitionTime;
     }
 
+    // Convenience API - Not serialized ------------------------------------------------------------
+
     public OpenGLMatrix getRobotToField() {
         return robotToField;
     }
@@ -85,8 +91,22 @@ public class FieldPosition {
         return robotToField.inverted();
     }
 
-    public VectorF transformPointToRobotSpace(VectorF point){
+    public VectorF fieldToRobot(VectorF point){
 
-        return this.getFieldToRobot().transform(point.multiplied(VuforiaBase.MM_PER_INCH)).multiplied(1/VuforiaBase.MM_PER_INCH);
+        return this.getFieldToRobot()
+                .transform(point.multiplied(VuforiaBase.MM_PER_INCH))
+                .multiplied(1 / VuforiaBase.MM_PER_INCH);
+    }
+
+    public VectorF getTargetVector(VectorF target) {
+        return FieldPositionHelpers.getTargetVector(this, target);
+    }
+
+    public double getAngleToTarget(VectorF target) {
+        return FieldPositionHelpers.getTargetAngle(this, target);
+    }
+
+    public double getDistanceToTarget(VectorF target) {
+        return FieldPositionHelpers.getTargetDistance(this, target);
     }
 }
