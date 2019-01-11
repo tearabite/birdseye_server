@@ -9,14 +9,10 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
-import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import com.eaglesfe.birdseye.BirdseyeTracker;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_GOLD_MINERAL;
 import static org.firstinspires.ftc.robotcore.external.tfod.TfodRoverRuckus.LABEL_SILVER_MINERAL;
@@ -27,28 +23,25 @@ public class RoverRuckusBirdseyeTracker extends BirdseyeTracker
     private static final float mmTargetHeight   = 6 * VuforiaBase.MM_PER_INCH;          // the height of the center of the target image above the floor
     private TFObjectDetector tfod;
 
-    @Override
-    public void start() {
-        super.start();
+    public void startMineralTracking() {
         tfod.activate();
     }
 
-    @Override
-    public void stop() {
-        super.stop();
+    public void stopMineralTracking() {
         tfod.shutdown();
     }
 
     @Override
-    public void initialize(HardwareMap hardwareMap, String webcamName, boolean preview) {
-        super.initialize(hardwareMap, webcamName, preview);
+    public void initialize(HardwareMap hardwareMap) {
+        super.initialize(hardwareMap);
 
         TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters();
-        if (preview) {
-            tfodParameters.tfodMonitorViewIdParent = hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        if (this.showCameraPreview) {
+            tfodParameters.tfodMonitorViewIdParent =
+                    hardwareMap.appContext.getResources().getIdentifier("tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         }
 
-        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, this.vuforia);
         tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_GOLD_MINERAL, LABEL_SILVER_MINERAL);
     }
 

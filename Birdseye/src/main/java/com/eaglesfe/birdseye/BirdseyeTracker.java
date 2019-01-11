@@ -1,10 +1,11 @@
 package com.eaglesfe.birdseye;
 
-import android.support.annotation.NonNull;
-
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraManager;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.SwitchableCamera;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -18,15 +19,20 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer.Para
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.robotcore.internal.camera.delegating.SwitchableCameraName;
+
+import java.util.ArrayList;
 
 public abstract class BirdseyeTracker
 {
-    private String vuforiaKey;
+    protected String vuforiaKey;
+    protected boolean showCameraPreview = true;
+    protected String[] webcamNames = null;
 
     protected VuforiaLocalizer vuforia;
     private VuforiaTrackables trackables;
-    private boolean isActive;
-    private boolean isInitialized;
+    protected boolean isActive;
+    protected boolean isInitialized;
 
     private int cameraForwardOffsetMm = 0;
     private int cameraVerticalOffsetMm = 0;
@@ -61,17 +67,45 @@ public abstract class BirdseyeTracker
         this.cameraAngleOffsetDeg = offset;
     }
 
-    public void initialize(HardwareMap hardwareMap, String webcamName, boolean preview) {
+    public void setShowCameraPreview(boolean value) {
+        if (!isActive && !isInitialized) {
+            this.showCameraPreview = value;
+        }
+    }
+
+    public boolean getShowCameraPreview() {
+        return this.showCameraPreview;
+    }
+
+    public String[] getWebcamNames() {
+        return webcamNames;
+    }
+
+    public void setWebcamNames(String ... names) {
+        this.webcamNames = names;
+    }
+
+    public void setActiveWebcam(int index) {
+        if (this.webcamNames == null || this.vuforia == null || !(this.vuforia.getCameraName().isSwitchable())) {
+            return;
+        }
+
+        SwitchableCameraName switchableCameraName = (SwitchableCameraName)this.vuforia.getCameraName();
+        CameraName individualCameraname = switchableCameraName.getMembers()[index];
+        ((SwitchableCamera)this.vuforia.getCamera()).setActiveCamera(individualCameraname);
+    }
+
+    public void initialize(HardwareMap hardwareMap) {
 
         //  Instantiate the Vuforia engine
-        Parameters parameters = getVuforiaParameters(hardwareMap, webcamName, preview);
+        Parameters parameters = getVuforiaParameters(hardwareMap, this.vuforiaKey, webcamNames, this.showCameraPreview);
 
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
 
         // Get the trackables from the derived class.
         trackables = getTrackables();
 
-        if (webcamName != null){
+        if (this.webcamNames != null){
             OpenGLMatrix cameraLocationOnRobot = OpenGLMatrix
                     .translation(cameraForwardOffsetMm, cameraLeftOffsetMm, cameraVerticalOffsetMm)
                     .multiplied(Orientation.getRotationMatrix(AxesReference.EXTRINSIC, AxesOrder.XZY, AngleUnit.DEGREES, 90, 90 + cameraAngleOffsetDeg, 0));
@@ -95,8 +129,7 @@ public abstract class BirdseyeTracker
         isInitialized = true;
     }
 
-    @NonNull
-    protected Parameters getVuforiaParameters(HardwareMap hardwareMap, String webcamName, boolean preview) {
+    protected static Parameters getVuforiaParameters(HardwareMap hardwareMap, String vuforiaKey, CameraName webcamName, boolean preview) {
         Parameters parameters = new Parameters();
         parameters.vuforiaLicenseKey = vuforiaKey;
 
@@ -106,12 +139,26 @@ public abstract class BirdseyeTracker
 
         boolean useWebcam = webcamName != null;
         if (useWebcam) {
-            parameters.cameraName = hardwareMap.get(WebcamName.class, webcamName);
+            parameters.cameraName = webcamName;
         } else {
             parameters.cameraDirection  = CameraDirection.BACK;
         }
 
         return parameters;
+    }
+
+    protected static Parameters getVuforiaParameters(HardwareMap hardwareMap, String vuforiaKey, String[] webcamNames, boolean preview) {
+
+        CameraName[] webcamNamesArray = new CameraName[webcamNames.length];
+        for (int i = 0; i < webcamNames.length; i++) {
+            webcamNamesArray[i] = hardwareMap.get(WebcamName.class, webcamNames[i]);
+        }
+
+        return getVuforiaParameters(hardwareMap, vuforiaKey, ClassFactory.getInstance().getCameraManager().nameForSwitchableCamera(webcamNamesArray), preview);
+    }
+
+    protected static Parameters getVuforiaParameters(HardwareMap hardwareMap, String vuforiaKey, String webcamName, boolean preview) {
+        return getVuforiaParameters(hardwareMap, vuforiaKey, hardwareMap.get(WebcamName.class, webcamName), preview);
     }
 
     public void start()
@@ -137,7 +184,10 @@ public abstract class BirdseyeTracker
     public FieldPosition getCurrentPosition() throws IllegalStateException {
 
         OpenGLMatrix transformationMatrix = getRobotTransformationMatrix();
-        return new FieldPosition(transformationMatrix);
+        if (transformationMatrix != null) {
+            return new FieldPosition(transformationMatrix);
+        }
+        return null;
     }
 
     public OpenGLMatrix getRobotTransformationMatrix() throws IllegalStateException {
