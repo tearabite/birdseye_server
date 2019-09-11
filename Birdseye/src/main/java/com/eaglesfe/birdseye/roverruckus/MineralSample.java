@@ -18,6 +18,7 @@ public class MineralSample {
     public final List<Point> goldMineralLocations = new ArrayList<>();
     public final List<Point> silverMineralLocations = new ArrayList<>();
     public GoldMineralArrangement goldMineralArrangement;
+    public GoldMineralArrangementFromLander goldMineralArrangementFromLander;
     public int silverSampleSize = 0;
     public int goldSampleSize = 0;
     public int sampleSize = 0;
@@ -31,25 +32,24 @@ public class MineralSample {
             Rect recognitionBoundingBox = getBoundingBox(recognition);
             Point position = new Point(recognitionBoundingBox.centerX(), recognitionBoundingBox.centerY());
 
-            if (recognitionBoundingBox.width() > 10 && recognitionBoundingBox.height() > 10) {
-                sampleSize++;
-                if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
-                    if (recognitionBoundingBox.width() * recognitionBoundingBox.height() > largestGoldMineralBoundingBox.width() * largestGoldMineralBoundingBox.height()) {
-                        largestGoldMineralBoundingBox = recognitionBoundingBox;
-                    }
-                    goldMineralLocations.add(position);
-                    goldSampleSize++;
-                    angleToGoldMineral = goldSampleSize == 1 ? recognition.estimateAngleToObject(AngleUnit.DEGREES) : Double.MIN_VALUE;
-                } else {
-                    silverMineralLocations.add(position);
-                    silverSampleSize++;
+            sampleSize++;
+            if (recognition.getLabel().equals(LABEL_GOLD_MINERAL)) {
+                if (recognitionBoundingBox.width() * recognitionBoundingBox.height() > largestGoldMineralBoundingBox.width() * largestGoldMineralBoundingBox.height()) {
+                    largestGoldMineralBoundingBox = recognitionBoundingBox;
                 }
-
-                boundingBox.union(recognitionBoundingBox);
+                goldMineralLocations.add(position);
+                goldSampleSize++;
+                angleToGoldMineral = goldSampleSize == 1 ? recognition.estimateAngleToObject(AngleUnit.DEGREES) : Double.MIN_VALUE;
+            } else {
+                silverMineralLocations.add(position);
+                silverSampleSize++;
             }
+
+            boundingBox.union(recognitionBoundingBox);
         }
 
         goldMineralArrangement = getGoldMineralArrangement();
+        goldMineralArrangementFromLander = getGoldMineralArrangementFromLander();
     }
 
     private Rect getBoundingBox(Recognition recognition) {
@@ -86,6 +86,35 @@ public class MineralSample {
     }
 
     public enum GoldMineralArrangement {
+        UNKNOWN, LEFT, CENTER, RIGHT
+    }
+
+    private GoldMineralArrangementFromLander getGoldMineralArrangementFromLander() {
+        if (sampleSize == 2) {
+            if (goldSampleSize == 1 && silverSampleSize == 1) {
+                if (goldMineralLocations.get(0).x > silverMineralLocations.get(0).x) {
+                    return  GoldMineralArrangementFromLander.RIGHT;
+                } else {
+                    return  GoldMineralArrangementFromLander.CENTER;
+                }
+            } else if (silverSampleSize == 2) {
+                return GoldMineralArrangementFromLander.LEFT;
+            }
+        } else if (goldSampleSize == 1 && silverSampleSize == 2) {
+            if (goldMineralLocations.get(0).x > silverMineralLocations.get(0).x && goldMineralLocations.get(0).x > silverMineralLocations.get(1).x) {
+                return GoldMineralArrangementFromLander.RIGHT;
+            } else if ( goldMineralLocations.get(0).x > silverMineralLocations.get(0).x && goldMineralLocations.get(0).x < silverMineralLocations.get(1).x ||
+                    goldMineralLocations.get(0).x < silverMineralLocations.get(0).x && goldMineralLocations.get(0).x > silverMineralLocations.get(1).x
+                    ) {
+                return  GoldMineralArrangementFromLander.CENTER;
+            } else if (goldMineralLocations.get(0).x < silverMineralLocations.get(0).x && goldMineralLocations.get(0).x < silverMineralLocations.get(1).x) {
+                return GoldMineralArrangementFromLander.LEFT;
+            }
+        }
+        return GoldMineralArrangementFromLander.UNKNOWN;
+    }
+
+    public enum  GoldMineralArrangementFromLander {
         UNKNOWN, LEFT, CENTER, RIGHT
     }
 }

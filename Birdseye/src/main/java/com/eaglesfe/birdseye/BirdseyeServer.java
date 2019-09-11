@@ -135,7 +135,9 @@ public class BirdseyeServer {
                 this.updateRequested = false;
                 try {
                     String telemetry = startNewTelemetryBlock();
-                    server.broadcast(telemetry);
+                    if (telemetry.length() > 0) {
+                        server.broadcast(telemetry);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

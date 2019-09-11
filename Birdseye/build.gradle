@@ -19,7 +19,7 @@ android {
         targetSdkVersion 19
     }
 
-    compileSdkVersion 23
+    compileSdkVersion 28
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
@@ -37,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.java-websocket:Java-WebSocket:1.3.9'
+    implementation (name:'RobotServer-release', ext: 'aar')
 }
 
 apply from: 'build.release.gradle'
